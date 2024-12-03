@@ -16,7 +16,7 @@ func main() {
 
 	switch day {
 	case "1":
-		day1.Day1Part1()
+		day1.Day1()
 	// Add more cases as you implement more days
 	default:
 		fmt.Printf("Day %s is not implemented yet.\n", day)
