@@ -4,6 +4,7 @@ import (
 	"advent_of_code_2024/day1"
 	"advent_of_code_2024/day2"
 	"advent_of_code_2024/day3"
+	"advent_of_code_2024/day4"
 	"fmt"
 	"os"
 )
@@ -23,6 +24,8 @@ func main() {
 		day2.Day2()
 	case "3":
 		day3.Day3()
+	case "4":
+		day4.Day4()
 	// Add more cases as you implement more days
 	default:
 		fmt.Printf("Day %s is not implemented yet.\n", day)
