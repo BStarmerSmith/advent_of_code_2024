@@ -37,7 +37,7 @@ func readProgramFromFile(filePath string) []string {
 func parseProgramData(rawDataArr []string) []string {
 	var cleanData []string
 	for _, rawData := range rawDataArr {
-		re := regexp.MustCompile(`mul\((\d{1,3}),(\d{1,3})\)`)
+		re := regexp.MustCompile(`mul\((\d{1,3}),(\d{1,3})\)|do\(\)|don't\(\)`)
 		matches := re.FindAllString(rawData, -1)
 		cleanData = append(cleanData, matches...) // ... is used to expand the values
 	}
@@ -46,12 +46,19 @@ func parseProgramData(rawDataArr []string) []string {
 
 func processCalculation(cleanData []string) int {
 	total := 0
+	isDo := true
 	for _, data := range cleanData {
-		re := regexp.MustCompile(`\b\d{1,3}\b`)
-		matches := re.FindAllString(data, -1)
-		value1 := parseStringToInt(matches[0])
-		value2 := parseStringToInt(matches[1])
-		total += (value1 * value2)
+		if data == "do()" {
+			isDo = true
+		} else if data == "don't()" {
+			isDo = false
+		} else if isDo {
+			re := regexp.MustCompile(`\b\d{1,3}\b`)
+			matches := re.FindAllString(data, -1)
+			value1 := parseStringToInt(matches[0])
+			value2 := parseStringToInt(matches[1])
+			total += (value1 * value2)
+		}
 	}
 	return total
 }
