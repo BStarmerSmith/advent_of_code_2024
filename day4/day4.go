@@ -1,10 +1,8 @@
 package day4
 
 import (
-	"bufio"
+	"advent_of_code_2024/helper"
 	"fmt"
-	"log"
-	"os"
 )
 
 type Direction struct {
@@ -25,37 +23,13 @@ var directions = []Direction{
 
 func Day4() {
 	words := []string{"XMAS"}
-	programRaw := matrixFromFile("day4/input.txt")
+	programRaw := helper.MatrixFromFile("day4/input.txt")
 	wordMap := findWordsInWordSearch(programRaw, words)
 	for word := range wordMap {
 		fmt.Printf("Word: %s Count: %d\n", word, len(wordMap[word]))
 	}
 	xMasPattern := findXMasPattern(programRaw)
 	fmt.Printf("X-MAS Pattern Count: %d\n", len(xMasPattern))
-}
-
-func matrixFromFile(filePath string) [][]rune {
-	var reports [][]rune
-
-	file, err := os.Open(filePath)
-	if err != nil {
-		log.Fatalf("Error opening file: %v", err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		var row []rune
-		for _, char := range line {
-			row = append(row, char)
-		}
-		reports = append(reports, row)
-	}
-	if err := scanner.Err(); err != nil {
-		log.Fatalf("Error reading file: %v", err)
-	}
-	return reports
 }
 
 func findWordsInWordSearch(grid [][]rune, words []string) map[string][][3]int {
