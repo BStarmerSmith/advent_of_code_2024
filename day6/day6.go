@@ -7,15 +7,29 @@ import (
 
 // ^ = guard . = empty space # = obstruction X = path
 type GameStates struct {
-	Guard         rune
-	EmptySpace    rune
-	Obstruction   rune
-	Path          rune
 	Direction     rune
 	OutOfBounds   bool
 	TilesVisisted map[struct{ x, y int }]struct{}
 	GuardPos      struct {
 		x, y int
+	}
+}
+
+type GameTiles struct {
+	Guard       rune
+	EmptySpace  rune
+	Obstruction rune
+	Path        rune
+}
+
+var gameTiles GameTiles
+
+func init() {
+	gameTiles = GameTiles{
+		Guard:       '^',
+		EmptySpace:  '.',
+		Obstruction: '#',
+		Path:        'X',
 	}
 }
 
@@ -27,40 +41,76 @@ type GameStates struct {
 // and then processes the guard's movements, marking the path taken and counting the number of unique tiles visited.
 // Finally, it prints the resulting grid and the number of unique tiles visited.
 func Day6() {
-	gameStates := GameStates{
-		Guard:         '^',
-		EmptySpace:    '.',
-		Obstruction:   '#',
-		Path:          'X',
-		Direction:     'N',
-		OutOfBounds:   false,
-		TilesVisisted: make(map[struct{ x, y int }]struct{}),
-	}
 	rawInput := helper.MatrixFromFile("day6/input.txt")
-	x, y := findPlayerPosition(rawInput, gameStates.Guard)
+	x, y := findPlayerPosition(rawInput, gameTiles.Guard)
 	if x == -1 || y == -1 {
 		panic("Guard not found")
 	}
-	gameStates.GuardPos.x = x
-	gameStates.GuardPos.y = y
-	for !gameStates.OutOfBounds {
-		nextX, nextY := move(rawInput, gameStates.GuardPos.x, gameStates.GuardPos.y, gameStates)
+
+	gameState := setUpGameStates(rawInput, x, y)
+	startGame(gameState, rawInput)
+	fmt.Printf("Visisted: %d\n", len(gameState.TilesVisisted))
+
+	getInfinteLoop := getGuardStuckInLoop(rawInput, x, y)
+	fmt.Printf("Infinite loops: %d\n", getInfinteLoop)
+}
+
+func startGame(gameState GameStates, rawInput [][]rune) bool {
+	maxMoves := len(rawInput) * len(rawInput[0])
+	count := 0
+	for !gameState.OutOfBounds {
+		if count == maxMoves {
+			return false
+		}
+		nextX, nextY := move(rawInput, gameState.GuardPos.x, gameState.GuardPos.y, gameState)
 		if isMoveOutOfBounds(rawInput, nextX, nextY) {
-			gameStates.OutOfBounds = true
+			gameState.OutOfBounds = true
 			break
-		} else if rawInput[nextX][nextY] == gameStates.Obstruction {
-			gameStates.Direction = turn90Degrees(gameStates.Direction, 'R')
+		} else if rawInput[nextX][nextY] == gameTiles.Obstruction {
+			gameState.Direction = turn90Degrees(gameState.Direction, 'R')
 		} else {
-			gameStates.GuardPos.x = nextX
-			gameStates.GuardPos.y = nextY
-			rawInput[nextX][nextY] = gameStates.Path
-			if _, visited := gameStates.TilesVisisted[struct{ x, y int }{nextX, nextY}]; !visited {
-				gameStates.TilesVisisted[struct{ x, y int }{nextX, nextY}] = struct{}{}
+			gameState.GuardPos.x = nextX
+			gameState.GuardPos.y = nextY
+			rawInput[nextX][nextY] = gameTiles.Path
+			if _, visited := gameState.TilesVisisted[struct{ x, y int }{nextX, nextY}]; !visited {
+				gameState.TilesVisisted[struct{ x, y int }{nextX, nextY}] = struct{}{}
+			}
+		}
+		count++
+	}
+	return true
+}
+
+func getGuardStuckInLoop(grid [][]rune, startingX int, startingY int) int {
+	infiniteLoop := 0
+	for i, row := range grid {
+		for j, cell := range row {
+			totalCells := len(grid) * len(grid[0])
+			processedCells := i*len(row) + j + 1
+			if processedCells*10%totalCells == 0 {
+				fmt.Printf("Processed %d%% of cells\n", processedCells*100/totalCells)
+			}
+			if cell == '.' {
+				oldCell := grid[i][j]
+				grid[i][j] = gameTiles.Obstruction
+				gameState := setUpGameStates(grid, startingX, startingY)
+				if !startGame(gameState, grid) {
+					infiniteLoop++
+				}
+				grid[i][j] = oldCell
 			}
 		}
 	}
-	printMap(rawInput)
-	fmt.Printf("Visisted: %d\n", len(gameStates.TilesVisisted))
+	return infiniteLoop
+}
+
+func setUpGameStates(grid [][]rune, startingPositionX int, startingPositionY int) GameStates {
+	return GameStates{
+		Direction:     'N',
+		OutOfBounds:   false,
+		TilesVisisted: make(map[struct{ x, y int }]struct{}),
+		GuardPos:      struct{ x, y int }{startingPositionX, startingPositionY},
+	}
 }
 
 // turn90Degrees
