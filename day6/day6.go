@@ -5,7 +5,6 @@ import (
 	"fmt"
 )
 
-// ^ = guard . = empty space # = obstruction X = path
 type GameStates struct {
 	Direction     rune
 	OutOfBounds   bool
@@ -15,6 +14,7 @@ type GameStates struct {
 	}
 }
 
+// ^ = guard . = empty space # = obstruction X = path
 type GameTiles struct {
 	Guard       rune
 	EmptySpace  rune
@@ -33,13 +33,9 @@ func init() {
 	}
 }
 
-// Day6 simulates a game where a guard navigates through a grid based on specific rules.
-// The guard starts at a position marked by '^' and moves in a direction ('N' for North).
-// The grid contains empty spaces ('.'), obstructions ('#'), and paths ('X').
-// The guard moves until it goes out of bounds or encounters an obstruction, at which point it turns 90 degrees to the right.
-// The function reads the initial grid from "day6/input.txt", finds the guard's starting position,
-// and then processes the guard's movements, marking the path taken and counting the number of unique tiles visited.
-// Finally, it prints the resulting grid and the number of unique tiles visited.
+// Day6 solves the puzzles for day 6
+// It finds the number of tiles visited by the guard
+// and the number of infinite loops the guard gets stuck in
 func Day6() {
 	rawInput := helper.MatrixFromFile("day6/input.txt")
 	x, y := findPlayerPosition(rawInput, gameTiles.Guard)
@@ -47,14 +43,16 @@ func Day6() {
 		panic("Guard not found")
 	}
 
-	gameState := setUpGameStates(rawInput, x, y)
+	gameState := setUpGameStates(x, y)
 	startGame(gameState, rawInput)
 	fmt.Printf("Visisted: %d\n", len(gameState.TilesVisisted))
 
-	getInfinteLoop := getGuardStuckInLoop(rawInput, x, y)
+	getInfinteLoop := getGuardStuckInLoop(rawInput, gameState)
 	fmt.Printf("Infinite loops: %d\n", getInfinteLoop)
 }
 
+// startGame starts the game and returns true if the guard goes out of bounds
+// or false if the guard completes the game without going out of bounds
 func startGame(gameState GameStates, rawInput [][]rune) bool {
 	maxMoves := len(rawInput) * len(rawInput[0])
 	count := 0
@@ -62,7 +60,7 @@ func startGame(gameState GameStates, rawInput [][]rune) bool {
 		if count == maxMoves {
 			return false
 		}
-		nextX, nextY := move(rawInput, gameState.GuardPos.x, gameState.GuardPos.y, gameState)
+		nextX, nextY := move(gameState.GuardPos.x, gameState.GuardPos.y, gameState)
 		if isMoveOutOfBounds(rawInput, nextX, nextY) {
 			gameState.OutOfBounds = true
 			break
@@ -81,30 +79,28 @@ func startGame(gameState GameStates, rawInput [][]rune) bool {
 	return true
 }
 
-func getGuardStuckInLoop(grid [][]rune, startingX int, startingY int) int {
+// getGuardStuckInLoop finds the number of infinite loops the guard gets stuck in
+func getGuardStuckInLoop(grid [][]rune, firstRun GameStates) int {
 	infiniteLoop := 0
-	for i, row := range grid {
-		for j, cell := range row {
-			totalCells := len(grid) * len(grid[0])
-			processedCells := i*len(row) + j + 1
-			if processedCells*10%totalCells == 0 {
-				fmt.Printf("Processed %d%% of cells\n", processedCells*100/totalCells)
-			}
-			if cell == '.' {
-				oldCell := grid[i][j]
-				grid[i][j] = gameTiles.Obstruction
-				gameState := setUpGameStates(grid, startingX, startingY)
-				if !startGame(gameState, grid) {
-					infiniteLoop++
-				}
-				grid[i][j] = oldCell
-			}
+
+	for pos := range firstRun.TilesVisisted {
+		copyGrid := make([][]rune, len(grid))
+		for i := range grid {
+			copyGrid[i] = make([]rune, len(grid[i]))
+			copy(copyGrid[i], grid[i])
+		}
+		x, y := pos.x, pos.y
+		copyGrid[x][y] = gameTiles.Obstruction
+		gameState := setUpGameStates(firstRun.GuardPos.x, firstRun.GuardPos.y)
+		if !startGame(gameState, copyGrid) {
+			infiniteLoop++
 		}
 	}
 	return infiniteLoop
 }
 
-func setUpGameStates(grid [][]rune, startingPositionX int, startingPositionY int) GameStates {
+// setUpGameStates initializes the game states
+func setUpGameStates(startingPositionX int, startingPositionY int) GameStates {
 	return GameStates{
 		Direction:     'N',
 		OutOfBounds:   false,
@@ -113,7 +109,7 @@ func setUpGameStates(grid [][]rune, startingPositionX int, startingPositionY int
 	}
 }
 
-// turn90Degrees
+// turn90Degrees turns the guard 90 degrees to the left or right based on the current direction
 func turn90Degrees(direction rune, turn rune) rune {
 	if turn == 'L' {
 		switch direction {
@@ -141,7 +137,8 @@ func turn90Degrees(direction rune, turn rune) rune {
 	return ' '
 }
 
-func move(grid [][]rune, x, y int, gameStates GameStates) (int, int) {
+// move moves the guard in the specified direction
+func move(x, y int, gameStates GameStates) (int, int) {
 	switch gameStates.Direction {
 	case 'N':
 		x--
@@ -155,6 +152,7 @@ func move(grid [][]rune, x, y int, gameStates GameStates) (int, int) {
 	return x, y
 }
 
+// findPlayerPosition finds the player's position in the grid
 func findPlayerPosition(grid [][]rune, player rune) (int, int) {
 	for i, row := range grid {
 		for j, cell := range row {
@@ -166,15 +164,7 @@ func findPlayerPosition(grid [][]rune, player rune) (int, int) {
 	return -1, -1
 }
 
+// isMoveOutOfBounds checks if the next move is out of bounds
 func isMoveOutOfBounds(grid [][]rune, x, y int) bool {
 	return x < 0 || y < 0 || x >= len(grid) || y >= len(grid[0])
-}
-
-func printMap(grid [][]rune) {
-	for _, row := range grid {
-		for _, cell := range row {
-			print(string(cell))
-		}
-		println()
-	}
 }
